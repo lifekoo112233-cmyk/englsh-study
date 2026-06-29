@@ -84,6 +84,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .news-meta{font-size:12px;color:#aaa;display:flex;align-items:center;gap:8px;}
 .news-speak{padding:5px 10px;border:1px solid #ddd;border-radius:20px;background:#fff;font-size:12px;cursor:pointer;color:#555;margin-top:8px;}
 .news-speak:active{background:#f0f7ff;}
+.tap-word{cursor:pointer;border-radius:3px;transition:background 0.1s;}
+.tap-word:active{background:#dbeafe;}
+.news-desc{font-size:14px;color:#555;line-height:1.6;margin:6px 0 2px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.news-trans{font-size:14px;color:#2563eb;line-height:1.6;margin:6px 0 2px;padding:8px 10px;background:#eff6ff;border-radius:8px;}
 .news-loading{text-align:center;padding:40px;color:#aaa;font-size:14px;}
 .news-error{text-align:center;padding:30px;color:#ef4444;font-size:14px;}
 
@@ -438,6 +442,24 @@ function setWordCount(n, btn) {
   renderWords();
 }
 
+function speakWord(word, ex) {
+  if(!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const speed = getSpeed();
+  // 단어 먼저
+  const u1 = new SpeechSynthesisUtterance(word);
+  u1.lang='en-US'; u1.rate=speed;
+  // 잠깐 쉬고 예문
+  u1.onend = () => {
+    setTimeout(() => {
+      const u2 = new SpeechSynthesisUtterance(ex);
+      u2.lang='en-US'; u2.rate=speed;
+      speechSynthesis.speak(u2);
+    }, 500);
+  };
+  speechSynthesis.speak(u1);
+}
+
 function renderWords() {
   const today = new Date();
   const dayOfYear = Math.floor((today - new Date(today.getFullYear(),0,0)) / 86400000);
@@ -450,25 +472,30 @@ function renderWords() {
       <div class="word-en">${w.en}</div>
       <div class="word-kr">${w.kr}</div>
       <div class="word-ex">"${escHtml(w.ex)}"</div>
-      <button class="word-speak-btn" onclick="speakOne('${escQ(w.en+'. '+w.ex)}')">🔊 듣기</button>
+      <button class="word-speak-btn" onclick="speakWord('${escQ(w.en)}','${escQ(w.ex)}')">🔊 단어 + 예문 듣기</button>
     </div>`
   ).join('');
 }
 
 // ===== 뉴스 탭 =====
 let currentNewsSource = 'bbc';
+let newsCache = {}; // {src: [{title, desc, link, pubDate}]}
+
 async function loadNews(src, btn) {
   document.querySelectorAll('.news-src-btn').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   currentNewsSource = src;
   const listEl = document.getElementById('news-list');
+
+  if(newsCache[src]) { renderNews(src); return; }
+
   listEl.innerHTML = '<div class="news-loading">뉴스 불러오는 중...</div>';
-  
+
   const feeds = {
     bbc: 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://feeds.bbci.co.uk/news/rss.xml'),
     cnn: 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://rss.cnn.com/rss/edition.rss')
   };
-  
+
   try {
     const resp = await fetch(feeds[src]);
     const data = await resp.json();
@@ -481,25 +508,152 @@ async function loadNews(src, btn) {
       const title = item.querySelector('title')?.textContent || '';
       const link = item.querySelector('link')?.textContent || '';
       const pubDate = item.querySelector('pubDate')?.textContent || '';
-      if(title) news.push({title, link, pubDate});
+      // description에서 텍스트 추출
+      const descRaw = item.querySelector('description')?.textContent || '';
+      const descClean = descRaw.replace(/<[^>]*>/g,'').replace(/&lt;.*?&gt;/g,'').replace(/\s+/g,' ').trim();
+      if(title) news.push({title, link, pubDate, desc: descClean});
     });
     if(news.length===0){listEl.innerHTML='<div class="news-error">뉴스를 불러올 수 없습니다.</div>';return;}
-    listEl.innerHTML = news.map((n,i)=>`
-      <div class="news-item">
-        <div class="news-title">${escHtml(n.title)}</div>
-        <div class="news-meta">
-          <span>${src.toUpperCase()}</span>
-          <span>${formatDate(n.pubDate)}</span>
-        </div>
-        <div style="display:flex;gap:6px;margin-top:8px;">
-          <button class="news-speak" onclick="speakOne('${escQ(n.title)}')">🔊 듣기</button>
-          ${n.link?`<button class="news-speak" onclick="window.open('${n.link}','_blank')">🔗 원문</button>`:''}
-        </div>
-      </div>`).join('');
+    newsCache[src] = news;
+    renderNews(src);
   } catch(e) {
     listEl.innerHTML = '<div class="news-error">뉴스 로딩 실패.<br>인터넷 연결을 확인해주세요.</div>';
   }
 }
+
+// 단어 클릭 시 팝업 번역
+let wordPopup = null;
+function showWordPopup(word, x, y) {
+  removeWordPopup();
+  const popup = document.createElement('div');
+  popup.id = 'word-popup';
+  popup.style.cssText = `position:fixed;background:#1e293b;color:#fff;padding:8px 12px;border-radius:10px;font-size:13px;z-index:9999;max-width:200px;box-shadow:0 4px 16px rgba(0,0,0,0.3);`;
+  popup.style.left = Math.min(x, window.innerWidth-210)+'px';
+  popup.style.top = (y+10)+'px';
+  popup.innerHTML = `<div style="color:#94a3b8;font-size:11px;margin-bottom:4px;">${word}</div><div id="popup-content">번역 중...</div>`;
+  document.body.appendChild(popup);
+  wordPopup = popup;
+
+  // 캐시 확인
+  const cacheKey = 'word:'+word.toLowerCase();
+  if(transCache[cacheKey]) {
+    document.getElementById('popup-content').textContent = transCache[cacheKey];
+    return;
+  }
+
+  // API 번역
+  if(!apiKey) {
+    document.getElementById('popup-content').innerHTML = '<span style="color:#fca5a5;">API 키 필요</span>';
+    setTimeout(()=>{removeWordPopup();openApiModal();},1200);
+    return;
+  }
+  fetchWordTranslation(word).then(kr=>{
+    transCache[cacheKey]=kr;
+    localStorage.setItem('eng_trans',JSON.stringify(transCache));
+    const el = document.getElementById('popup-content');
+    if(el) el.textContent = kr;
+  }).catch(()=>{
+    const el = document.getElementById('popup-content');
+    if(el) el.textContent = '번역 실패';
+  });
+}
+
+function removeWordPopup() {
+  const p = document.getElementById('word-popup');
+  if(p) p.remove();
+  wordPopup = null;
+}
+
+async function fetchWordTranslation(word) {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','x-api-key':apiKey},
+    body: JSON.stringify({
+      model:'claude-haiku-4-5-20251001', max_tokens:100,
+      messages:[{role:'user',content:`영어 단어 "${word}"의 한국어 뜻을 간단히 알려주세요. 뜻만 출력하세요.`}]
+    })
+  });
+  const data = await resp.json();
+  return data.content[0].text.trim();
+}
+
+// 뉴스 렌더 - 단어 탭가능 + 전체 해석 버튼
+function renderNews(src) {
+  const news = newsCache[src] || [];
+  const listEl = document.getElementById('news-list');
+  listEl.innerHTML = news.map((n,i)=>{
+    // 제목 단어를 클릭 가능하게 span으로 분리
+    const titleWords = n.title.split(/(\s+)/).map(w => {
+      if(/^\s+$/.test(w)) return w;
+      const clean = w.replace(/[^a-zA-Z'-]/g,'');
+      if(!clean) return escHtml(w);
+      return `<span class="tap-word" onclick="handleWordTap(event,'${escQ(clean)}')">${escHtml(w)}</span>`;
+    }).join('');
+
+    const descWords = n.desc ? n.desc.split(/(\s+)/).map(w => {
+      if(/^\s+$/.test(w)) return w;
+      const clean = w.replace(/[^a-zA-Z'-]/g,'');
+      if(!clean) return escHtml(w);
+      return `<span class="tap-word" onclick="handleWordTap(event,'${escQ(clean)}')">${escHtml(w)}</span>`;
+    }).join('') : '';
+
+    return `<div class="news-item">
+      <div class="news-title tap-text">${titleWords}</div>
+      ${n.desc ? `<div class="news-desc tap-text" id="ndesc-${i}">${descWords}</div>` : ''}
+      <div class="news-trans" id="ntrans-${i}" style="display:none;"></div>
+      <div class="news-meta">
+        <span>${src.toUpperCase()}</span>
+        <span>${formatDate(n.pubDate)}</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        <button class="news-speak" onclick="speakOne('${escQ(n.title)}')">🔊 제목</button>
+        ${n.desc?`<button class="news-speak" onclick="speakOne('${escQ(n.desc.slice(0,300))}')">🔊 내용</button>`:''}
+        <button class="news-speak" id="ntrans-btn-${i}" onclick="toggleNewsTrans(${i},'${escQ(n.title+(n.desc?' '+n.desc:''))}')">🇰🇷 전체 해석</button>
+        ${n.link?`<button class="news-speak" onclick="window.open('${escQ(n.link)}','_blank')">🔗 원문</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function handleWordTap(e, word) {
+  e.stopPropagation();
+  if(!word || word.length<2) return;
+  showWordPopup(word, e.clientX, e.clientY);
+}
+
+async function toggleNewsTrans(idx, text) {
+  const transEl = document.getElementById('ntrans-'+idx);
+  const btn = document.getElementById('ntrans-btn-'+idx);
+  if(transEl.style.display !== 'none') {
+    transEl.style.display = 'none';
+    btn.textContent = '🇰🇷 전체 해석';
+    return;
+  }
+  if(transEl.textContent) { transEl.style.display='block'; btn.textContent='🇰🇷 해석 닫기'; return; }
+  if(!apiKey) { openApiModal(); return; }
+  btn.textContent = '번역 중...';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','x-api-key':apiKey},
+      body: JSON.stringify({
+        model:'claude-haiku-4-5-20251001', max_tokens:400,
+        messages:[{role:'user',content:`다음 영어 뉴스를 자연스러운 한국어로 번역해주세요. 번역문만 출력하세요:\n"${text.slice(0,500)}"`}]
+      })
+    });
+    const data = await resp.json();
+    transEl.textContent = data.content[0].text.trim();
+    transEl.style.display = 'block';
+    btn.textContent = '🇰🇷 해석 닫기';
+  } catch(e) {
+    btn.textContent = '🇰🇷 전체 해석';
+    alert('번역 실패. 다시 시도해주세요.');
+  }
+}
+
+document.addEventListener('click', e => {
+  if(wordPopup && !wordPopup.contains(e.target)) removeWordPopup();
+});
 
 function formatDate(str) {
   if(!str) return '';
