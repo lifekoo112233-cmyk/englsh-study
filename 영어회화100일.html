@@ -40,7 +40,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .stop-btn:active{background:#fef2f2;}
 
 /* 재생 버튼 영역 */
-.play-btn-row{display:flex;gap:8px;padding:10px 16px 0;}
+.play-btn-row{display:flex;gap:8px;padding:10px 16px;position:sticky;top:var(--controls-bottom, 140px);z-index:49;background:#f5f5f5;}
 .play-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:11px 6px;border-radius:12px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid #2563eb;background:#eff6ff;color:#2563eb;}
 .play-btn.playing{background:#2563eb;color:#fff;}
 .play-btn.repeat-btn{border-color:#7c3aed;background:#f5f3ff;color:#7c3aed;}
@@ -799,10 +799,14 @@ renderDay();
 updateProgress();
 updateApiStatus();
 
-// 헤더 높이 동적 계산 → sticky-controls top 값 설정
+// 헤더 + sticky-controls 높이 동적 계산
 function updateHeaderHeight() {
-  const h = document.querySelector('.header')?.offsetHeight || 88;
-  document.documentElement.style.setProperty('--header-h', h + 'px');
+  const header = document.querySelector('.header');
+  const sticky = document.querySelector('.sticky-controls');
+  const headerH = header?.offsetHeight || 88;
+  const stickyH = sticky?.offsetHeight || 52;
+  document.documentElement.style.setProperty('--header-h', headerH + 'px');
+  document.documentElement.style.setProperty('--controls-bottom', (headerH + stickyH) + 'px');
 }
 updateHeaderHeight();
 window.addEventListener('resize', updateHeaderHeight);
