@@ -101,7 +101,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .news-speak:active{background:#f0f7ff;}
 .tap-word{cursor:pointer;border-radius:3px;transition:background 0.1s;}
 .tap-word:active{background:#dbeafe;}
-.news-desc{font-size:14px;color:#555;line-height:1.7;margin:6px 0 2px;}
+.news-desc{font-size:14px;color:#555;line-height:1.6;margin:6px 0 2px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
 .news-trans{font-size:14px;color:#2563eb;line-height:1.6;margin:6px 0 2px;padding:8px 10px;background:#eff6ff;border-radius:8px;}
 .news-loading{text-align:center;padding:40px;color:#aaa;font-size:14px;}
 .news-error{text-align:center;padding:30px;color:#ef4444;font-size:14px;}
@@ -199,9 +199,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="tab-news" style="display:none;">
   <div class="news-content">
     <div class="news-source-row">
-      <button class="news-src-btn active" onclick="loadNews('top', this)">📰 주요뉴스</button>
-      <button class="news-src-btn" onclick="loadNews('business', this)">💰 경제</button>
-      <button class="news-src-btn" onclick="loadNews('sport', this)">⚽ 스포츠</button>
+      <button class="news-src-btn active" onclick="loadNews('bbc', this)">BBC</button>
+      <button class="news-src-btn" onclick="loadNews('cnn', this)">CNN</button>
     </div>
     <div id="news-list"><div class="news-loading">뉴스 불러오는 중...</div></div>
   </div>
@@ -260,7 +259,7 @@ function switchTab(tab) {
   currentTab = tab;
   if(tab==='list') renderDayList();
   if(tab==='words') renderWords();
-  if(tab==='news') loadNews('top', document.querySelector('.news-src-btn.active'));
+  if(tab==='news') loadNews('bbc', document.querySelector('.news-src-btn.active'));
   if(tab==='saved') renderSaved();
   if(tab!=='learn') stopAll();
 }
@@ -475,9 +474,9 @@ function playNext() {
   document.querySelectorAll('.sentence-card.playing').forEach(el=>el.classList.remove('playing'));
 
   if(playMode==='current') {
-    // 현재 day 카드 하이라이트
+    // 현재 day 카드 하이라이트 (스크롤 강제 이동 없음)
     const card = document.getElementById('sc-'+playIndex);
-    if(card){card.classList.add('playing');card.scrollIntoView({behavior:'smooth',block:'center'});}
+    if(card) card.classList.add('playing');
   } else {
     // 전체듣기 - day 자동 전환
     const meta = playQueueMeta[playIndex];
@@ -485,10 +484,10 @@ function playNext() {
       currentDay = meta.day;
       renderDay();
     }
-    // 현재 문장 카드 하이라이트
+    // 현재 문장 카드 하이라이트 (스크롤 강제 이동 없음)
     if(meta) {
       const card = document.getElementById('sc-'+meta.idxInDay);
-      if(card){card.classList.add('playing');card.scrollIntoView({behavior:'smooth',block:'center'});}
+      if(card) card.classList.add('playing');
     }
   }
 
@@ -624,7 +623,7 @@ function toggleWordTrans(idx, kr, ex) {
 }
 
 // ===== 뉴스 탭 =====
-let currentNewsSource = 'top';
+let currentNewsSource = 'bbc';
 let newsCache = {};
 
 async function fetchRSS(url) {
@@ -656,9 +655,8 @@ async function loadNews(src, btn) {
   listEl.innerHTML = '<div class="news-loading">뉴스 불러오는 중...</div>';
 
   const feeds = {
-    top: 'https://feeds.bbci.co.uk/news/rss.xml',
-    business: 'https://feeds.bbci.co.uk/news/business/rss.xml',
-    sport: 'https://feeds.bbci.co.uk/sport/rss.xml'
+    bbc: 'https://feeds.bbci.co.uk/news/rss.xml',
+    cnn: 'https://rss.cnn.com/rss/edition.rss'
   };
 
   try {
@@ -668,46 +666,20 @@ async function loadNews(src, btn) {
     const items = xml.querySelectorAll('item');
     const news = [];
     items.forEach((item,i) => {
-      if(i>=5) return; // 후보 5개 중 첫 유효 기사 사용
+      if(i>=15) return;
       const title = item.querySelector('title')?.textContent?.trim() || '';
       const link = item.querySelector('link')?.textContent?.trim() || '';
       const pubDate = item.querySelector('pubDate')?.textContent?.trim() || '';
       const descRaw = item.querySelector('description')?.textContent || '';
       const descClean = descRaw.replace(/<[^>]*>/g,'').replace(/&lt;.*?&gt;/g,'').replace(/\s+/g,' ').trim();
-      if(title && descClean) news.push({title, link, pubDate, desc: descClean});
+      if(title) news.push({title, link, pubDate, desc: descClean});
     });
     if(news.length===0){listEl.innerHTML='<div class="news-error">뉴스 항목이 없습니다.</div>';return;}
-    // 본문이 가장 긴 기사 1개만 선택
-    news.sort((a,b)=>b.desc.length - a.desc.length);
-    newsCache[src] = [news[0]];
+    newsCache[src] = news;
     renderNews(src);
-
-    // 원문 페이지에서 본문 더 길게 가져오기 시도 (백그라운드)
-    enrichArticle(src, news[0]);
   } catch(e) {
     listEl.innerHTML = `<div class="news-error">뉴스 로딩 실패 😢<br><br>잠시 후 다시 시도해주세요.<br><small style="color:#aaa;">${e.message}</small></div>`;
   }
-}
-
-async function enrichArticle(src, article) {
-  if(!article.link) return;
-  try {
-    const html_text = await fetchRSS(article.link);
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html_text, 'text/html');
-    // BBC 기사 본문 문단 추출
-    const paragraphs = doc.querySelectorAll('article p, [data-component="text-block"] p, main p');
-    let fullText = '';
-    paragraphs.forEach(p => {
-      const t = p.textContent.trim();
-      if(t.length > 30) fullText += t + ' ';
-    });
-    fullText = fullText.trim();
-    if(fullText.length > article.desc.length + 50) {
-      newsCache[src][0].desc = fullText.slice(0, 1500);
-      if(currentNewsSource === src) renderNews(src);
-    }
-  } catch(e) { /* 실패 시 기존 description 유지 */ }
 }
 
 // 단어 클릭 시 팝업 번역
@@ -791,12 +763,12 @@ function renderNews(src) {
       ${n.desc ? `<div class="news-desc tap-text" id="ndesc-${i}">${descWords}</div>` : ''}
       <div class="news-trans" id="ntrans-${i}" style="display:none;"></div>
       <div class="news-meta">
-        <span>${({top:'📰 주요뉴스',business:'💰 경제',sport:'⚽ 스포츠'})[src]||src}</span>
+        <span>${src.toUpperCase()}</span>
         <span>${formatDate(n.pubDate)}</span>
       </div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
         <button class="news-speak" onclick="speakOne('${escQ(n.title)}')">🔊 제목</button>
-        ${n.desc?`<button class="news-speak" onclick="speakOne('${escQ(n.desc.slice(0,600))}')">🔊 내용</button>`:''}
+        ${n.desc?`<button class="news-speak" onclick="speakOne('${escQ(n.desc.slice(0,300))}')">🔊 내용</button>`:''}
         <button class="news-speak" id="ntrans-btn-${i}" onclick="toggleNewsTrans(${i},'${escQ(n.title+(n.desc?' '+n.desc:''))}')">🇰🇷 전체 해석</button>
         ${n.link?`<button class="news-speak" onclick="window.open('${escQ(n.link)}','_blank')">🔗 원문</button>`:''}
       </div>
