@@ -88,6 +88,56 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .word-ex{font-size:13px;color:#666;line-height:1.5;margin-bottom:10px;}
 .word-speak-btn{padding:6px 14px;border:1px solid #ddd;border-radius:20px;background:#fff;font-size:13px;cursor:pointer;color:#555;}
 
+/* 퀴즈 탭 */
+.quiz-content{padding:14px 16px 80px;}
+.quiz-intro{text-align:center;padding:30px 16px;}
+.quiz-intro-icon{font-size:48px;margin-bottom:12px;}
+.quiz-intro-title{font-size:19px;font-weight:600;margin-bottom:8px;}
+.quiz-intro-desc{font-size:14px;color:#888;line-height:1.6;margin-bottom:24px;}
+.quiz-count-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:24px;flex-wrap:wrap;}
+.quiz-count-label{font-size:13px;color:#888;width:100%;margin-bottom:6px;}
+.quiz-count-btn{padding:9px 16px;border:1px solid #ddd;border-radius:10px;background:#fff;font-size:14px;cursor:pointer;color:#555;}
+.quiz-count-btn.active{border-color:#2563eb;background:#eff6ff;color:#2563eb;font-weight:600;}
+.quiz-start-btn{padding:14px 32px;border:none;border-radius:14px;background:#2563eb;color:#fff;font-size:16px;font-weight:600;cursor:pointer;}
+.quiz-start-btn:active{opacity:0.9;}
+
+.quiz-progress-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.quiz-progress-bar{flex:1;height:6px;background:#e8e8e8;border-radius:3px;overflow:hidden;}
+.quiz-progress-fill{height:100%;background:#2563eb;border-radius:3px;transition:width 0.3s;}
+.quiz-progress-text{font-size:13px;color:#888;font-weight:600;white-space:nowrap;}
+
+.quiz-card{background:#fff;border-radius:16px;padding:22px 18px;border:1px solid #e8e8e8;}
+.quiz-day-tag{display:inline-block;font-size:11px;color:#2563eb;background:#eff6ff;padding:3px 10px;border-radius:20px;font-weight:600;margin-bottom:12px;}
+.quiz-kr{font-size:17px;font-weight:600;color:#1a1a1a;line-height:1.5;margin-bottom:16px;}
+.quiz-blank-sentence{font-size:15px;color:#555;line-height:1.7;margin-bottom:16px;padding:12px 14px;background:#f8f8f8;border-radius:10px;}
+.quiz-blank-sentence .blank{display:inline-block;min-width:50px;border-bottom:2px solid #2563eb;color:transparent;}
+.quiz-input{width:100%;padding:13px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:16px;outline:none;margin-bottom:12px;}
+.quiz-input:focus{border-color:#2563eb;}
+.quiz-input.correct{border-color:#22c55e;background:#f0fdf4;}
+.quiz-input.wrong{border-color:#ef4444;background:#fef2f2;}
+.quiz-feedback{font-size:14px;line-height:1.6;margin-bottom:14px;display:none;padding:12px 14px;border-radius:10px;}
+.quiz-feedback.show{display:block;}
+.quiz-feedback.correct{background:#f0fdf4;color:#16a34a;}
+.quiz-feedback.wrong{background:#fef2f2;color:#dc2626;}
+.quiz-feedback .quiz-answer-line{font-weight:600;margin-top:4px;}
+.quiz-btn-row{display:flex;gap:8px;margin-bottom:10px;}
+.quiz-btn-check,.quiz-btn-next{flex:1;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;}
+.quiz-btn-check{background:#2563eb;color:#fff;}
+.quiz-btn-next{background:#16a34a;color:#fff;}
+.quiz-skip-btn{width:100%;padding:10px;border:none;background:none;color:#aaa;font-size:13px;cursor:pointer;}
+
+.quiz-result-card{background:#fff;border-radius:16px;padding:32px 20px;text-align:center;border:1px solid #e8e8e8;margin-bottom:14px;}
+.quiz-result-emoji{font-size:52px;margin-bottom:10px;}
+.quiz-result-title{font-size:18px;font-weight:600;margin-bottom:8px;}
+.quiz-result-score{font-size:32px;font-weight:700;color:#2563eb;margin-bottom:8px;}
+.quiz-result-msg{font-size:14px;color:#888;margin-bottom:20px;}
+.quiz-review-item{background:#fff;border-radius:12px;padding:14px;margin-bottom:8px;border:1px solid #e8e8e8;}
+.quiz-review-item.wrong{border-left:3px solid #ef4444;}
+.quiz-review-item.correct{border-left:3px solid #22c55e;}
+.quiz-review-kr{font-size:13px;color:#888;margin-bottom:4px;}
+.quiz-review-en{font-size:14px;font-weight:500;}
+.quiz-review-mark{float:right;font-size:13px;}
+
 /* 뉴스 탭 */
 .news-content{padding:12px 16px 80px;}
 .news-source-row{display:flex;gap:8px;margin-bottom:12px;}
@@ -145,6 +195,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="tab-btn active" onclick="switchTab('learn')">학습</button>
     <button class="tab-btn" onclick="switchTab('list')">목록</button>
     <button class="tab-btn" onclick="switchTab('words')">단어</button>
+    <button class="tab-btn" onclick="switchTab('quiz')">퀴즈</button>
     <button class="tab-btn" onclick="switchTab('news')">뉴스</button>
     <button class="tab-btn" onclick="switchTab('saved')">저장</button>
   </div>
@@ -192,6 +243,54 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div class="word-date" id="word-date"></div>
     <div id="word-list"></div>
+  </div>
+</div>
+
+<!-- 퀴즈 탭 -->
+<div id="tab-quiz" style="display:none;">
+  <div class="quiz-content">
+    <div id="quiz-intro" class="quiz-intro">
+      <div class="quiz-intro-icon">✏️</div>
+      <div class="quiz-intro-title">영어 빈칸 채우기 퀴즈</div>
+      <div class="quiz-intro-desc">Day 1~100 전체에서 랜덤으로 문제가 출제됩니다.<br>한글 해석을 보고 빈칸에 알맞은 영어를 입력하세요.</div>
+      <div class="quiz-count-row">
+        <span class="quiz-count-label">문제 수</span>
+        <button class="quiz-count-btn active" onclick="setQuizCount(5,this)">5문제</button>
+        <button class="quiz-count-btn" onclick="setQuizCount(10,this)">10문제</button>
+        <button class="quiz-count-btn" onclick="setQuizCount(20,this)">20문제</button>
+      </div>
+      <button class="quiz-start-btn" onclick="startQuiz()">🎯 퀴즈 시작</button>
+    </div>
+
+    <div id="quiz-play" style="display:none;">
+      <div class="quiz-progress-row">
+        <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+        <span class="quiz-progress-text" id="quiz-progress-text">1 / 5</span>
+      </div>
+      <div class="quiz-card">
+        <div class="quiz-day-tag" id="quiz-day-tag">Day 1</div>
+        <div class="quiz-kr" id="quiz-kr"></div>
+        <div class="quiz-blank-sentence" id="quiz-blank-sentence"></div>
+        <input type="text" class="quiz-input" id="quiz-input" placeholder="영어로 입력하세요" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div id="quiz-feedback" class="quiz-feedback"></div>
+        <div class="quiz-btn-row">
+          <button class="quiz-btn-check" id="quiz-check-btn" onclick="checkQuizAnswer()">✓ 정답 확인</button>
+          <button class="quiz-btn-next" id="quiz-next-btn" onclick="nextQuizQuestion()" style="display:none;">다음 문제 →</button>
+        </div>
+        <button class="quiz-skip-btn" onclick="skipQuizQuestion()">건너뛰기</button>
+      </div>
+    </div>
+
+    <div id="quiz-result" style="display:none;">
+      <div class="quiz-result-card">
+        <div class="quiz-result-emoji" id="quiz-result-emoji">🎉</div>
+        <div class="quiz-result-title">퀴즈 완료!</div>
+        <div class="quiz-result-score" id="quiz-result-score">0 / 5</div>
+        <div class="quiz-result-msg" id="quiz-result-msg"></div>
+        <button class="quiz-start-btn" onclick="resetQuiz()">🔄 다시 풀기</button>
+      </div>
+      <div id="quiz-review-list"></div>
+    </div>
   </div>
 </div>
 
@@ -251,10 +350,10 @@ const dayKeys = Object.keys(COURSE_DATA).map(Number).sort((a,b)=>a-b);
 
 // 탭 전환
 function switchTab(tab) {
-  ['learn','list','words','news','saved'].forEach(t => {
+  ['learn','list','words','quiz','news','saved'].forEach(t => {
     document.getElementById('tab-'+t).style.display = t===tab ? 'block' : 'none';
   });
-  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['learn','list','words','news','saved'][i]===tab));
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['learn','list','words','quiz','news','saved'][i]===tab));
   document.getElementById('learn-sticky-extra').classList.toggle('show', tab==='learn');
   currentTab = tab;
   if(tab==='list') renderDayList();
@@ -839,6 +938,227 @@ function deleteSaved(i) {
   localStorage.setItem('eng_saved',JSON.stringify(savedSentences));
   renderSaved();
 }
+
+// ===== 퀴즈 탭 =====
+let quizCount = 5;
+let quizQuestions = [];
+let quizIdx = 0;
+let quizScore = 0;
+let quizResults = []; // {kr, en, blankWord, userAnswer, correct, mode}
+let quizCurrentMode = 'word'; // 'word' | 'full'
+let quizCurrentBlankWord = '';
+let quizAnswered = false;
+
+// 전체 문장 풀 (1회 생성 후 캐시)
+let allSentencePool = null;
+function buildSentencePool() {
+  if(allSentencePool) return allSentencePool;
+  const pool = [];
+  dayKeys.forEach(day => {
+    const d = COURSE_DATA[String(day)];
+    if(!d) return;
+    d.sentences.forEach(s => {
+      // 너무 짧은 문장(3단어 미만)은 제외
+      const wordCnt = s.trim().split(/\s+/).length;
+      if(wordCnt >= 3) pool.push({day, sentence: s});
+    });
+  });
+  allSentencePool = pool;
+  return pool;
+}
+
+// 빈칸으로 만들 단어 선택 (의미있는 단어 우선: 길이 3+ 글자, 관사/전치사 등 제외)
+const SKIP_WORDS = new Set(['a','an','the','is','am','are','was','were','to','of','in','on','at','it','he','she','they','we','you','i','my','your','his','her','its','our','their','this','that','for','and','but','or','do','did','does','will','can','if']);
+function pickBlankWord(sentence) {
+  const words = sentence.match(/[A-Za-z']+/g) || [];
+  const candidates = words.filter(w => w.length >= 3 && !SKIP_WORDS.has(w.toLowerCase()));
+  if(candidates.length === 0) return words[Math.floor(Math.random()*words.length)] || null;
+  return candidates[Math.floor(Math.random()*candidates.length)];
+}
+
+function setQuizCount(n, btn) {
+  quizCount = n;
+  document.querySelectorAll('.quiz-count-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function startQuiz() {
+  const pool = buildSentencePool();
+  if(pool.length < quizCount) { alert('문제를 만들기 위한 문장이 부족합니다.'); return; }
+
+  // 랜덤 셔플 후 quizCount개 추출 (중복 없이)
+  const shuffled = [...pool].sort(()=>Math.random()-0.5);
+  quizQuestions = shuffled.slice(0, quizCount).map(item => {
+    const mode = Math.random() < 0.5 ? 'word' : 'full'; // 1.2번 랜덤 혼합
+    let blankWord = null;
+    if(mode === 'word') {
+      blankWord = pickBlankWord(item.sentence);
+      if(!blankWord) return { ...item, mode: 'full', blankWord: null }; // fallback
+    }
+    return { ...item, mode, blankWord };
+  });
+
+  quizIdx = 0;
+  quizScore = 0;
+  quizResults = [];
+
+  document.getElementById('quiz-intro').style.display = 'none';
+  document.getElementById('quiz-result').style.display = 'none';
+  document.getElementById('quiz-play').style.display = 'block';
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+  const q = quizQuestions[quizIdx];
+  quizAnswered = false;
+  document.getElementById('quiz-progress-text').textContent = (quizIdx+1)+' / '+quizQuestions.length;
+  document.getElementById('quiz-progress-fill').style.width = ((quizIdx)/quizQuestions.length*100)+'%';
+  document.getElementById('quiz-day-tag').textContent = 'Day '+q.day;
+
+  // 한글 해석 캐시 확인, 없으면 표시 + API 번역 시도
+  const krCacheKey = q.sentence;
+  document.getElementById('quiz-kr').textContent = transCache[krCacheKey] || '해석 준비 중...';
+  if(!transCache[krCacheKey]) {
+    if(apiKey) {
+      fetchTranslation(q.sentence).then(kr=>{
+        transCache[krCacheKey]=kr; localStorage.setItem('eng_trans',JSON.stringify(transCache));
+        if(quizQuestions[quizIdx]===q) document.getElementById('quiz-kr').textContent = kr;
+      }).catch(()=>{
+        if(quizQuestions[quizIdx]===q) document.getElementById('quiz-kr').textContent = '(해석을 불러올 수 없습니다 - API 키를 확인하세요)';
+      });
+    } else {
+      document.getElementById('quiz-kr').textContent = '(해석을 보려면 API 키 설정이 필요합니다)';
+    }
+  }
+
+  if(q.mode === 'word') {
+    // 단어 하나만 빈칸
+    const re = new RegExp('\\b'+q.blankWord.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b');
+    const display = q.sentence.replace(re, '<span class="blank">'+q.blankWord+'</span>');
+    document.getElementById('quiz-blank-sentence').innerHTML = display;
+  } else {
+    // 문장 전체 영작
+    document.getElementById('quiz-blank-sentence').innerHTML = '<span class="blank">위 문장을 영어로 작성하세요</span>';
+  }
+
+  const input = document.getElementById('quiz-input');
+  input.value = '';
+  input.classList.remove('correct','wrong');
+  input.disabled = false;
+  input.placeholder = q.mode==='word' ? '빈칸에 들어갈 단어를 입력하세요' : '문장 전체를 영어로 입력하세요';
+  document.getElementById('quiz-feedback').classList.remove('show','correct','wrong');
+  document.getElementById('quiz-feedback').innerHTML = '';
+  document.getElementById('quiz-check-btn').style.display = 'block';
+  document.getElementById('quiz-next-btn').style.display = 'none';
+  setTimeout(()=>input.focus(), 100);
+}
+
+function normalizeText(s) {
+  return s.toLowerCase().replace(/[.,!?'"]/g,'').replace(/\s+/g,' ').trim();
+}
+
+function checkQuizAnswer() {
+  if(quizAnswered) return;
+  const q = quizQuestions[quizIdx];
+  const userInput = document.getElementById('quiz-input').value.trim();
+  if(!userInput) { document.getElementById('quiz-input').focus(); return; }
+
+  let isCorrect = false;
+  if(q.mode === 'word') {
+    isCorrect = normalizeText(userInput) === normalizeText(q.blankWord);
+  } else {
+    // 문장 전체 - 핵심 단어 매칭 기반 관대한 채점 (80% 이상 단어 일치)
+    const userWords = normalizeText(userInput).split(' ').filter(Boolean);
+    const correctWords = normalizeText(q.sentence).split(' ').filter(Boolean);
+    let matchCount = 0;
+    const correctSet = [...correctWords];
+    userWords.forEach(w => {
+      const idx = correctSet.indexOf(w);
+      if(idx >= 0) { matchCount++; correctSet.splice(idx,1); }
+    });
+    const matchRatio = correctWords.length > 0 ? matchCount / correctWords.length : 0;
+    isCorrect = matchRatio >= 0.75;
+  }
+
+  quizAnswered = true;
+  const input = document.getElementById('quiz-input');
+  const feedback = document.getElementById('quiz-feedback');
+  input.disabled = true;
+  input.classList.add(isCorrect ? 'correct' : 'wrong');
+
+  if(isCorrect) {
+    quizScore++;
+    feedback.className = 'quiz-feedback show correct';
+    feedback.innerHTML = '✅ 정답입니다!';
+  } else {
+    feedback.className = 'quiz-feedback show wrong';
+    const answerText = q.mode==='word' ? q.blankWord : q.sentence;
+    feedback.innerHTML = '❌ 아쉬워요!<div class="quiz-answer-line">정답: '+escHtml(answerText)+'</div>';
+  }
+
+  quizResults.push({
+    day: q.day, kr: transCache[q.sentence] || '', sentence: q.sentence,
+    mode: q.mode, blankWord: q.blankWord, userAnswer: userInput, correct: isCorrect
+  });
+
+  document.getElementById('quiz-check-btn').style.display = 'none';
+  document.getElementById('quiz-next-btn').style.display = 'block';
+  document.getElementById('quiz-next-btn').textContent = (quizIdx+1 >= quizQuestions.length) ? '결과 보기 →' : '다음 문제 →';
+}
+
+function skipQuizQuestion() {
+  if(quizAnswered) { nextQuizQuestion(); return; }
+  const q = quizQuestions[quizIdx];
+  quizResults.push({
+    day: q.day, kr: transCache[q.sentence] || '', sentence: q.sentence,
+    mode: q.mode, blankWord: q.blankWord, userAnswer: '(건너뜀)', correct: false
+  });
+  nextQuizQuestion();
+}
+
+function nextQuizQuestion() {
+  quizIdx++;
+  if(quizIdx >= quizQuestions.length) { showQuizResult(); return; }
+  renderQuizQuestion();
+}
+
+function showQuizResult() {
+  document.getElementById('quiz-play').style.display = 'none';
+  document.getElementById('quiz-result').style.display = 'block';
+  const total = quizQuestions.length;
+  const pct = Math.round(quizScore/total*100);
+  document.getElementById('quiz-result-score').textContent = quizScore+' / '+total;
+  let emoji = '🎉', msg = '훌륭해요!';
+  if(pct < 50) { emoji='💪'; msg='조금 더 연습이 필요해요!'; }
+  else if(pct < 80) { emoji='👍'; msg='잘하고 있어요!'; }
+  else if(pct < 100) { emoji='🔥'; msg='거의 다 맞췄어요!'; }
+  else { emoji='🏆'; msg='퍼펙트! 완벽해요!'; }
+  document.getElementById('quiz-result-emoji').textContent = emoji;
+  document.getElementById('quiz-result-msg').textContent = msg+' ('+pct+'%)';
+
+  document.getElementById('quiz-review-list').innerHTML = quizResults.map(r => `
+    <div class="quiz-review-item ${r.correct?'correct':'wrong'}">
+      <span class="quiz-review-mark">${r.correct?'✅':'❌'}</span>
+      <div class="quiz-review-kr">Day ${r.day} · ${escHtml(r.kr||'')}</div>
+      <div class="quiz-review-en">${escHtml(r.sentence)}</div>
+      ${!r.correct?`<div style="font-size:12px;color:#ef4444;margin-top:4px;">내 답: ${escHtml(r.userAnswer)}</div>`:''}
+    </div>`).join('');
+}
+
+function resetQuiz() {
+  document.getElementById('quiz-result').style.display = 'none';
+  document.getElementById('quiz-play').style.display = 'none';
+  document.getElementById('quiz-intro').style.display = 'block';
+}
+
+// 엔터키로 정답 확인/다음문제
+document.addEventListener('keypress', e => {
+  if(e.key !== 'Enter') return;
+  if(document.getElementById('tab-quiz').style.display === 'none') return;
+  if(document.activeElement?.id !== 'quiz-input') return;
+  if(!quizAnswered) checkQuizAnswer();
+  else nextQuizQuestion();
+});
 
 // 유틸
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
