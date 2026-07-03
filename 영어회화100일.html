@@ -140,19 +140,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* 뉴스 탭 */
 .news-content{padding:12px 16px 80px;}
-.news-source-row{display:flex;gap:8px;margin-bottom:12px;}
-.news-src-btn{flex:1;padding:9px;border:1px solid #ddd;border-radius:10px;background:#fff;font-size:13px;font-weight:500;cursor:pointer;color:#555;text-align:center;}
+.news-source-row{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;}
+.news-src-btn{flex-shrink:0;padding:8px 12px;border:1px solid #ddd;border-radius:20px;background:#fff;font-size:13px;font-weight:500;cursor:pointer;color:#555;white-space:nowrap;}
 .news-src-btn.active{border-color:#2563eb;background:#eff6ff;color:#2563eb;}
-.news-item{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid #e8e8e8;cursor:pointer;}
-.news-item:active{background:#f8f8f8;}
-.news-title{font-size:15px;font-weight:500;line-height:1.4;margin-bottom:6px;}
-.news-meta{font-size:12px;color:#aaa;display:flex;align-items:center;gap:8px;}
-.news-speak{padding:5px 10px;border:1px solid #ddd;border-radius:20px;background:#fff;font-size:12px;cursor:pointer;color:#555;margin-top:8px;}
+.news-item{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid #e8e8e8;}
+.news-category-tag{font-size:11px;color:#888;margin-bottom:6px;}
+.news-title{font-size:16px;font-weight:600;line-height:1.45;margin-bottom:8px;color:#1a1a1a;}
+.news-trail{font-size:14px;color:#555;line-height:1.6;margin-bottom:8px;}
+.news-body{font-size:14px;color:#333;line-height:1.8;margin-bottom:10px;padding:12px;background:#f8f9fa;border-radius:8px;border-left:3px solid #2563eb;}
+.news-trans{font-size:14px;color:#1d4ed8;line-height:1.7;margin:8px 0;padding:10px 12px;background:#eff6ff;border-radius:8px;}
+.news-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.news-speak{padding:6px 10px;border:1px solid #ddd;border-radius:20px;background:#fff;font-size:12px;cursor:pointer;color:#555;white-space:nowrap;}
 .news-speak:active{background:#f0f7ff;}
 .tap-word{cursor:pointer;border-radius:3px;transition:background 0.1s;}
 .tap-word:active{background:#dbeafe;}
-.news-desc{font-size:14px;color:#555;line-height:1.6;margin:6px 0 2px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
-.news-trans{font-size:14px;color:#2563eb;line-height:1.6;margin:6px 0 2px;padding:8px 10px;background:#eff6ff;border-radius:8px;}
 .news-loading{text-align:center;padding:40px;color:#aaa;font-size:14px;}
 .news-error{text-align:center;padding:30px;color:#ef4444;font-size:14px;}
 
@@ -298,8 +299,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="tab-news" style="display:none;">
   <div class="news-content">
     <div class="news-source-row">
-      <button class="news-src-btn active" onclick="loadNews('bbc', this)">BBC</button>
-      <button class="news-src-btn" onclick="loadNews('cnn', this)">CNN</button>
+      <button class="news-src-btn active" onclick="loadNews('world', this)">🌍 세계</button>
+      <button class="news-src-btn" onclick="loadNews('business', this)">💰 경제</button>
+      <button class="news-src-btn" onclick="loadNews('sport', this)">⚽ 스포츠</button>
+      <button class="news-src-btn" onclick="loadNews('technology', this)">💻 기술</button>
     </div>
     <div id="news-list"><div class="news-loading">뉴스 불러오는 중...</div></div>
   </div>
@@ -358,7 +361,7 @@ function switchTab(tab) {
   currentTab = tab;
   if(tab==='list') renderDayList();
   if(tab==='words') renderWords();
-  if(tab==='news') loadNews('bbc', document.querySelector('.news-src-btn.active'));
+  if(tab==='news') loadNews('world', document.querySelector('.news-src-btn.active'));
   if(tab==='saved') renderSaved();
   if(tab!=='learn') stopAll();
 }
@@ -723,25 +726,10 @@ function toggleWordTrans(idx, kr, ex) {
 
 // ===== 뉴스 탭 =====
 let currentNewsSource = 'bbc';
+// ===== 뉴스 탭 (Guardian API) =====
+let currentNewsSource = 'world';
 let newsCache = {};
-
-async function fetchRSS(url) {
-  const proxies = [
-    `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  ];
-  for(const proxy of proxies) {
-    try {
-      const resp = await fetch(proxy, {signal: AbortSignal.timeout(8000)});
-      if(!resp.ok) continue;
-      const data = await resp.json().catch(()=>null);
-      if(data && data.contents) return data.contents;
-      const text = await resp.text().catch(()=>null);
-      if(text && text.includes('<item>')) return text;
-    } catch(e) { continue; }
-  }
-  throw new Error('모든 프록시 실패');
-}
+const GUARDIAN_KEY = '121e427d-1110-48c4-bc35-e25051d83003';
 
 async function loadNews(src, btn) {
   document.querySelectorAll('.news-src-btn').forEach(b=>b.classList.remove('active'));
@@ -750,34 +738,32 @@ async function loadNews(src, btn) {
   const listEl = document.getElementById('news-list');
 
   if(newsCache[src]) { renderNews(src); return; }
-
   listEl.innerHTML = '<div class="news-loading">뉴스 불러오는 중...</div>';
 
-  const feeds = {
-    bbc: 'https://feeds.bbci.co.uk/news/rss.xml',
-    cnn: 'https://rss.cnn.com/rss/edition.rss'
+  const sectionMap = {
+    world: 'world', business: 'business', sport: 'sport', technology: 'technology'
   };
 
   try {
-    const xml_text = await fetchRSS(feeds[src]);
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(xml_text, 'text/xml');
-    const items = xml.querySelectorAll('item');
-    const news = [];
-    items.forEach((item,i) => {
-      if(i>=15) return;
-      const title = item.querySelector('title')?.textContent?.trim() || '';
-      const link = item.querySelector('link')?.textContent?.trim() || '';
-      const pubDate = item.querySelector('pubDate')?.textContent?.trim() || '';
-      const descRaw = item.querySelector('description')?.textContent || '';
-      const descClean = descRaw.replace(/<[^>]*>/g,'').replace(/&lt;.*?&gt;/g,'').replace(/\s+/g,' ').trim();
-      if(title) news.push({title, link, pubDate, desc: descClean});
-    });
-    if(news.length===0){listEl.innerHTML='<div class="news-error">뉴스 항목이 없습니다.</div>';return;}
+    const url = `https://content.guardianapis.com/${sectionMap[src]}?api-key=${GUARDIAN_KEY}&show-fields=bodyText,trailText&page-size=10&order-by=newest`;
+    const resp = await fetch(url);
+    if(!resp.ok) throw new Error('Guardian API 오류: '+resp.status);
+    const data = await resp.json();
+    const results = data.response?.results || [];
+    if(results.length===0){ listEl.innerHTML='<div class="news-error">뉴스가 없습니다.</div>'; return; }
+
+    const news = results.map(item => ({
+      title: item.webTitle || '',
+      link: item.webUrl || '',
+      pubDate: item.webPublicationDate || '',
+      desc: (item.fields?.trailText || '').replace(/<[^>]*>/g,'').trim(),
+      body: (item.fields?.bodyText || '').replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim().slice(0, 2000)
+    }));
+
     newsCache[src] = news;
     renderNews(src);
   } catch(e) {
-    listEl.innerHTML = `<div class="news-error">뉴스 로딩 실패 😢<br><br>잠시 후 다시 시도해주세요.<br><small style="color:#aaa;">${e.message}</small></div>`;
+    listEl.innerHTML = `<div class="news-error">뉴스 로딩 실패 😢<br><small style="color:#aaa;">${e.message}</small></div>`;
   }
 }
 
@@ -837,42 +823,50 @@ async function fetchWordTranslation(word) {
   return data.content[0].text.trim();
 }
 
-// 뉴스 렌더 - 단어 탭가능 + 전체 해석 버튼
+// 뉴스 렌더 - 전체 본문 + 단어 탭 + 해석
+function makeWordTappable(text) {
+  return text.split(/(\s+)/).map(w => {
+    if(/^\s+$/.test(w)) return w;
+    const clean = w.replace(/[^a-zA-Z'-]/g,'');
+    if(!clean || clean.length < 2) return escHtml(w);
+    return `<span class="tap-word" onclick="handleWordTap(event,'${escQ(clean)}')">${escHtml(w)}</span>`;
+  }).join('');
+}
+
 function renderNews(src) {
   const news = newsCache[src] || [];
   const listEl = document.getElementById('news-list');
-  listEl.innerHTML = news.map((n,i)=>{
-    // 제목 단어를 클릭 가능하게 span으로 분리
-    const titleWords = n.title.split(/(\s+)/).map(w => {
-      if(/^\s+$/.test(w)) return w;
-      const clean = w.replace(/[^a-zA-Z'-]/g,'');
-      if(!clean) return escHtml(w);
-      return `<span class="tap-word" onclick="handleWordTap(event,'${escQ(clean)}')">${escHtml(w)}</span>`;
-    }).join('');
-
-    const descWords = n.desc ? n.desc.split(/(\s+)/).map(w => {
-      if(/^\s+$/.test(w)) return w;
-      const clean = w.replace(/[^a-zA-Z'-]/g,'');
-      if(!clean) return escHtml(w);
-      return `<span class="tap-word" onclick="handleWordTap(event,'${escQ(clean)}')">${escHtml(w)}</span>`;
-    }).join('') : '';
+  listEl.innerHTML = news.map((n,i) => {
+    const titleHtml = makeWordTappable(n.title);
+    const descHtml = n.desc ? makeWordTappable(n.desc) : '';
+    const bodyHtml = n.body ? makeWordTappable(n.body) : '';
+    const pubStr = n.pubDate ? formatDate(n.pubDate) : '';
 
     return `<div class="news-item">
-      <div class="news-title tap-text">${titleWords}</div>
-      ${n.desc ? `<div class="news-desc tap-text" id="ndesc-${i}">${descWords}</div>` : ''}
+      <div class="news-category-tag">${({world:'🌍 세계',business:'💰 경제',sport:'⚽ 스포츠',technology:'💻 기술'})[src]||''} · ${pubStr}</div>
+      <div class="news-title tap-text">${titleHtml}</div>
+      ${descHtml ? `<div class="news-trail tap-text">${descHtml}</div>` : ''}
+      <div class="news-body tap-text" id="nbody-${i}" style="display:none;">${bodyHtml}</div>
       <div class="news-trans" id="ntrans-${i}" style="display:none;"></div>
-      <div class="news-meta">
-        <span>${src.toUpperCase()}</span>
-        <span>${formatDate(n.pubDate)}</span>
-      </div>
-      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+      <div class="news-actions">
         <button class="news-speak" onclick="speakOne('${escQ(n.title)}')">🔊 제목</button>
-        ${n.desc?`<button class="news-speak" onclick="speakOne('${escQ(n.desc.slice(0,300))}')">🔊 내용</button>`:''}
-        <button class="news-speak" id="ntrans-btn-${i}" onclick="toggleNewsTrans(${i},'${escQ(n.title+(n.desc?' '+n.desc:''))}')">🇰🇷 전체 해석</button>
+        <button class="news-speak" id="nbody-btn-${i}" onclick="toggleNewsBody(${i})">📖 본문 보기</button>
+        ${n.body?`<button class="news-speak" id="nbody-listen-${i}" onclick="speakOne('${escQ(n.body.slice(0,500))}')" style="display:none;">🔊 본문</button>`:''}
+        <button class="news-speak" id="ntrans-btn-${i}" onclick="toggleNewsTrans(${i},'${escQ((n.title+' '+n.desc+' '+n.body).slice(0,800))}')">🇰🇷 해석</button>
         ${n.link?`<button class="news-speak" onclick="window.open('${escQ(n.link)}','_blank')">🔗 원문</button>`:''}
       </div>
     </div>`;
   }).join('');
+}
+
+function toggleNewsBody(i) {
+  const body = document.getElementById('nbody-'+i);
+  const btn = document.getElementById('nbody-btn-'+i);
+  const listenBtn = document.getElementById('nbody-listen-'+i);
+  const showing = body.style.display !== 'none';
+  body.style.display = showing ? 'none' : 'block';
+  btn.textContent = showing ? '📖 본문 보기' : '📖 본문 닫기';
+  if(listenBtn) listenBtn.style.display = showing ? 'none' : 'inline-block';
 }
 
 function handleWordTap(e, word) {
