@@ -157,6 +157,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .news-loading{text-align:center;padding:40px;color:#aaa;font-size:14px;}
 .news-error{text-align:center;padding:30px;color:#ef4444;font-size:14px;}
 
+/* 회화 탭 */
+.chat-content{padding:12px 16px 120px;}
+.chat-situation-row{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:2px;}
+.chat-sit-btn{flex-shrink:0;padding:7px 12px;border:1px solid #ddd;border-radius:20px;background:#fff;font-size:12px;font-weight:500;cursor:pointer;color:#555;white-space:nowrap;}
+.chat-sit-btn.active{border-color:#2563eb;background:#eff6ff;color:#2563eb;}
+.chat-guide{text-align:center;padding:30px 16px;background:#fff;border-radius:16px;border:1px solid #e8e8e8;}
+.chat-guide-icon{font-size:40px;margin-bottom:10px;}
+.chat-guide-title{font-size:17px;font-weight:600;margin-bottom:8px;}
+.chat-guide-desc{font-size:14px;color:#888;line-height:1.6;}
+.chat-result-card{background:#fff;border-radius:16px;border:1px solid #e8e8e8;overflow:hidden;}
+.chat-my-bubble{background:#2563eb;color:#fff;padding:14px 16px;font-size:15px;line-height:1.5;}
+.chat-ai-bubble{padding:16px;font-size:14px;line-height:1.8;color:#1a1a1a;white-space:pre-wrap;}
+.chat-ai-bubble .correct{color:#16a34a;font-weight:600;font-size:15px;}
+.chat-ai-bubble .wrong{color:#ef4444;}
+.chat-ai-bubble .tip{color:#2563eb;}
+.chat-result-actions{display:flex;gap:8px;padding:10px 16px 14px;border-top:1px solid #f0f0f0;}
+.chat-action-btn{flex:1;padding:9px;border:1px solid #ddd;border-radius:10px;background:#fff;font-size:13px;cursor:pointer;color:#555;}
+.chat-action-btn:active{background:#f0f7ff;}
+.chat-loading{text-align:center;padding:40px;color:#888;font-size:14px;}
+.chat-loading-dots{display:flex;justify-content:center;gap:6px;margin-bottom:10px;}
+.chat-loading-dots span{width:8px;height:8px;background:#2563eb;border-radius:50%;animation:dot-bounce 1.2s infinite;}
+.chat-loading-dots span:nth-child(2){animation-delay:0.2s;}
+.chat-loading-dots span:nth-child(3){animation-delay:0.4s;}
+@keyframes dot-bounce{0%,80%,100%{transform:scale(0.6);opacity:0.4;}40%{transform:scale(1);opacity:1;}}
+.chat-input-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:flex;align-items:center;gap:8px;padding:10px 14px 20px;background:#fff;border-top:1px solid #e8e8e8;z-index:200;}
+.chat-mic-btn{width:40px;height:40px;border:1px solid #ddd;border-radius:50%;background:#fff;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.chat-mic-btn.listening{border-color:#ef4444;background:#fef2f2;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
+.chat-input{flex:1;padding:11px 14px;border:1.5px solid #ddd;border-radius:24px;font-size:15px;outline:none;background:#f8f8f8;}
+.chat-input:focus{border-color:#2563eb;background:#fff;}
+.chat-send-btn{padding:11px 16px;border:none;border-radius:24px;background:#2563eb;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.chat-send-btn:active{opacity:0.9;}
+
 /* 저장 탭 */
 .saved-content{padding:8px 8px 80px;}
 .saved-item{background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:8px;border:1px solid #e8e8e8;display:flex;align-items:center;gap:10px;}
@@ -197,6 +230,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="tab-btn" onclick="switchTab('list')">목록</button>
     <button class="tab-btn" onclick="switchTab('words')">단어</button>
     <button class="tab-btn" onclick="switchTab('quiz')">퀴즈</button>
+    <button class="tab-btn" onclick="switchTab('chat')">💬회화</button>
     <button class="tab-btn" onclick="switchTab('news')">뉴스</button>
     <button class="tab-btn" onclick="switchTab('saved')">저장</button>
   </div>
@@ -295,6 +329,56 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- 회화 탭 -->
+<div id="tab-chat" style="display:none;">
+  <div class="chat-content">
+
+    <!-- 상황 선택 -->
+    <div class="chat-situation-row">
+      <button class="chat-sit-btn active" onclick="setSituation('free',this)">🗣️ 자유</button>
+      <button class="chat-sit-btn" onclick="setSituation('cafe',this)">☕ 카페</button>
+      <button class="chat-sit-btn" onclick="setSituation('airport',this)">✈️ 공항</button>
+      <button class="chat-sit-btn" onclick="setSituation('business',this)">💼 비즈니스</button>
+      <button class="chat-sit-btn" onclick="setSituation('travel',this)">🗺️ 여행</button>
+    </div>
+
+    <!-- 안내 -->
+    <div class="chat-guide" id="chat-guide">
+      <div class="chat-guide-icon">💬</div>
+      <div class="chat-guide-title">1회 영어 회화 교정</div>
+      <div class="chat-guide-desc">영어 문장을 입력하면 AI가 교정해드립니다.<br>매번 독립적으로 처리되어 비용 누적이 없어요!</div>
+    </div>
+
+    <!-- 결과 카드 -->
+    <div class="chat-result-card" id="chat-result" style="display:none;">
+      <div class="chat-my-bubble" id="chat-my-text"></div>
+      <div class="chat-ai-bubble" id="chat-ai-text"></div>
+      <div class="chat-result-actions">
+        <button class="chat-action-btn" onclick="speakChatResult()">🔊 듣기</button>
+        <button class="chat-action-btn" onclick="saveChatResult()">📌 저장</button>
+        <button class="chat-action-btn" onclick="resetChat()">🔄 새 문장</button>
+      </div>
+    </div>
+
+    <!-- 로딩 -->
+    <div class="chat-loading" id="chat-loading" style="display:none;">
+      <div class="chat-loading-dots"><span></span><span></span><span></span></div>
+      <div>교정 중...</div>
+    </div>
+
+  </div>
+
+  <!-- 입력창 고정 하단 -->
+  <div class="chat-input-bar">
+    <button class="chat-mic-btn" id="chat-mic-btn" onclick="toggleMic()">🎤</button>
+    <input type="text" class="chat-input" id="chat-input"
+      placeholder="영어로 입력하세요..."
+      autocomplete="off" autocapitalize="off" spellcheck="false"
+      onkeypress="if(event.key==='Enter') sendChat()">
+    <button class="chat-send-btn" onclick="sendChat()">전송</button>
+  </div>
+</div>
+
 <!-- 뉴스 탭 -->
 <div id="tab-news" style="display:none;">
   <div class="news-content">
@@ -353,10 +437,10 @@ const dayKeys = Object.keys(COURSE_DATA).map(Number).sort((a,b)=>a-b);
 
 // 탭 전환
 function switchTab(tab) {
-  ['learn','list','words','quiz','news','saved'].forEach(t => {
+  ['learn','list','words','quiz','chat','news','saved'].forEach(t => {
     document.getElementById('tab-'+t).style.display = t===tab ? 'block' : 'none';
   });
-  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['learn','list','words','quiz','news','saved'][i]===tab));
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['learn','list','words','quiz','chat','news','saved'][i]===tab));
   document.getElementById('learn-sticky-extra').classList.toggle('show', tab==='learn');
   currentTab = tab;
   if(tab==='list') renderDayList();
@@ -364,6 +448,7 @@ function switchTab(tab) {
   if(tab==='news') loadNews('world', document.querySelector('.news-src-btn.active'));
   if(tab==='saved') renderSaved();
   if(tab!=='learn') stopAll();
+  if(tab!=='chat') stopMic();
 }
 
 // ===== 학습 탭 =====
@@ -1151,6 +1236,158 @@ document.addEventListener('keypress', e => {
   if(!quizAnswered) checkQuizAnswer();
   else nextQuizQuestion();
 });
+
+// ===== 회화 탭 =====
+let chatSituation = 'free';
+let chatLastCorrect = '';
+let micRecognition = null;
+let isMicListening = false;
+
+const SITUATION_PROMPTS = {
+  free: '자유 영어 회화 교정',
+  cafe: '카페에서 주문하는 상황',
+  airport: '공항에서 체크인/탑승하는 상황',
+  business: '비즈니스 미팅/이메일 상황',
+  travel: '여행 중 현지인과 대화하는 상황'
+};
+
+function setSituation(sit, btn) {
+  chatSituation = sit;
+  document.querySelectorAll('.chat-sit-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  resetChat();
+}
+
+function resetChat() {
+  document.getElementById('chat-result').style.display = 'none';
+  document.getElementById('chat-guide').style.display = 'block';
+  document.getElementById('chat-loading').style.display = 'none';
+  document.getElementById('chat-input').value = '';
+  chatLastCorrect = '';
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if(!text) { input.focus(); return; }
+  if(!apiKey) { openApiModal(); return; }
+
+  // UI 상태 변경
+  document.getElementById('chat-guide').style.display = 'none';
+  document.getElementById('chat-result').style.display = 'none';
+  document.getElementById('chat-loading').style.display = 'block';
+  input.disabled = true;
+
+  const situationDesc = SITUATION_PROMPTS[chatSituation];
+  const prompt = `당신은 영어 회화 선생님입니다. 상황: ${situationDesc}
+
+학생이 다음 영어 문장을 말했습니다:
+"${text}"
+
+다음 형식으로 한국어로 답변해주세요:
+
+✅ 교정된 문장:
+(올바른 영어 문장)
+
+📝 틀린 부분 설명:
+(무엇이 틀렸는지 간단히)
+
+💡 더 자연스러운 표현:
+(네이티브가 실제로 쓰는 표현)
+
+👉 다음 연습 문장:
+(비슷한 상황에서 써볼 수 있는 새 문장 1개)
+
+만약 문장이 완벽하다면 칭찬하고 심화 표현을 알려주세요.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','anthropic-version':'2023-06-01','x-api-key':apiKey},
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if(!resp.ok) {
+      if(resp.status===401){ apiKey=''; localStorage.removeItem('eng_api_key'); updateApiStatus(); openApiModal(); }
+      throw new Error('API 오류 '+resp.status);
+    }
+    const data = await resp.json();
+    const aiText = data.content[0].text.trim();
+
+    // 교정된 문장 추출 (저장/듣기용)
+    const correctMatch = aiText.match(/✅ 교정된 문장:\n(.+)/);
+    chatLastCorrect = correctMatch ? correctMatch[1].trim() : text;
+
+    // 결과 표시
+    document.getElementById('chat-loading').style.display = 'none';
+    document.getElementById('chat-my-text').textContent = '나: ' + text;
+    document.getElementById('chat-ai-text').textContent = aiText;
+    document.getElementById('chat-result').style.display = 'block';
+
+  } catch(e) {
+    document.getElementById('chat-loading').style.display = 'none';
+    document.getElementById('chat-guide').style.display = 'block';
+    alert('오류가 발생했습니다: ' + e.message);
+  }
+
+  input.disabled = false;
+  input.value = '';
+}
+
+function speakChatResult() {
+  if(!chatLastCorrect) return;
+  speakOne(chatLastCorrect);
+}
+
+function saveChatResult() {
+  if(!chatLastCorrect) return;
+  if(!savedSentences.includes(chatLastCorrect)) {
+    savedSentences.push(chatLastCorrect);
+    localStorage.setItem('eng_saved', JSON.stringify(savedSentences));
+    alert('저장됐습니다! ✅');
+  } else {
+    alert('이미 저장된 문장입니다.');
+  }
+}
+
+// 음성인식 (STT)
+function toggleMic() {
+  if(isMicListening) { stopMic(); return; }
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('이 브라우저는 음성인식을 지원하지 않습니다.\nChrome을 사용해주세요.');
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  micRecognition = new SR();
+  micRecognition.lang = 'en-US';
+  micRecognition.continuous = false;
+  micRecognition.interimResults = false;
+
+  micRecognition.onstart = () => {
+    isMicListening = true;
+    document.getElementById('chat-mic-btn').classList.add('listening');
+    document.getElementById('chat-mic-btn').textContent = '🔴';
+  };
+  micRecognition.onresult = (e) => {
+    const transcript = e.results[0][0].transcript;
+    document.getElementById('chat-input').value = transcript;
+    stopMic();
+    sendChat();
+  };
+  micRecognition.onerror = () => stopMic();
+  micRecognition.onend = () => stopMic();
+  micRecognition.start();
+}
+
+function stopMic() {
+  if(micRecognition) { try { micRecognition.stop(); } catch(e){} micRecognition = null; }
+  isMicListening = false;
+  const btn = document.getElementById('chat-mic-btn');
+  if(btn) { btn.classList.remove('listening'); btn.textContent = '🎤'; }
+}
 
 // 유틸
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
