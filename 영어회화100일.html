@@ -852,15 +852,24 @@ function pickBlankWord(sentence) {
 
 function setQuizCount(n,btn){ quizCount=n; document.querySelectorAll('.quiz-count-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
 
+// 빈칸 단어 1~2개 선택 (의미있는 단어 우선)
+function pickBlankWords(sentence) {
+  const words = sentence.match(/[A-Za-z']+/g) || [];
+  const candidates = words.filter(w => w.length >= 3 && !SKIP_WORDS.has(w.toLowerCase()));
+  if(!candidates.length) return [words[Math.floor(Math.random()*words.length)]].filter(Boolean);
+  const shuffled = [...candidates].sort(()=>Math.random()-0.5);
+  // 50% 확률로 2단어, 단 문장이 충분히 길 때만
+  const count = (candidates.length >= 4 && Math.random() < 0.5) ? 2 : 1;
+  return shuffled.slice(0, count);
+}
+
 function startQuiz() {
   const pool=buildSentencePool();
   if(pool.length<quizCount){ alert('문제를 만들기 위한 문장이 부족합니다.'); return; }
   const shuffled=[...pool].sort(()=>Math.random()-0.5);
   quizQuestions=shuffled.slice(0,quizCount).map(item=>{
-    const mode=Math.random()<0.5?'word':'full';
-    let blankWord=null;
-    if(mode==='word'){ blankWord=pickBlankWord(item.sentence); if(!blankWord) return {...item,mode:'full',blankWord:null}; }
-    return {...item,mode,blankWord};
+    const blankWords = pickBlankWords(item.sentence);
+    return {...item, mode:'word', blankWord: blankWords[0], blankWords};
   });
   quizIdx=0; quizScore=0; quizResults=[];
   document.getElementById('quiz-intro').style.display='none';
@@ -888,15 +897,17 @@ function renderQuizQuestion() {
     }).catch(()=>{ if(quizQuestions[quizIdx]===q) krEl.textContent='(해석 없음)'; });
   }
 
-  if(q.mode==='word'){
-    const re=new RegExp('\\b'+q.blankWord.replace(/[.*+?^${}()|[\]\\]/g,'\\/*__APP_LOGIC__*/')+'\\b');
-    document.getElementById('quiz-blank-sentence').innerHTML=q.sentence.replace(re,'<span class="blank">'+q.blankWord+'</span>');
-  } else {
-    document.getElementById('quiz-blank-sentence').innerHTML='<span class="blank">위 문장을 영어로 작성하세요</span>';
-  }
+  // 빈칸 1~2개 표시
+  let displaySentence = q.sentence;
+  (q.blankWords||[q.blankWord]).forEach(w => {
+    const re = new RegExp('\\b'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\/*__APP_LOGIC__*/')+'\\b');
+    displaySentence = displaySentence.replace(re, '<span class="blank">'+w+'</span>');
+  });
+  document.getElementById('quiz-blank-sentence').innerHTML = displaySentence;
   const input=document.getElementById('quiz-input');
   input.value=''; input.classList.remove('correct','wrong'); input.disabled=false;
-  input.placeholder=q.mode==='word'?'빈칸에 들어갈 단어를 입력하세요':'문장 전체를 영어로 입력하세요';
+  const bw = q.blankWords||[q.blankWord];
+  input.placeholder = bw.length > 1 ? '빈칸 단어들을 쉼표로 구분해 입력 (예: word1, word2)' : '빈칸에 들어갈 단어를 입력하세요';
   document.getElementById('quiz-feedback').classList.remove('show','correct','wrong');
   document.getElementById('quiz-feedback').innerHTML='';
   document.getElementById('quiz-check-btn').style.display='block';
@@ -912,20 +923,21 @@ function checkQuizAnswer() {
   const userInput=document.getElementById('quiz-input').value.trim();
   if(!userInput){ document.getElementById('quiz-input').focus(); return; }
   let isCorrect=false;
-  if(q.mode==='word'){ isCorrect=normalizeText(userInput)===normalizeText(q.blankWord); }
-  else {
-    const uw=normalizeText(userInput).split(' ').filter(Boolean);
-    const cw=normalizeText(q.sentence).split(' ').filter(Boolean);
-    let mc=0; const cs=[...cw];
-    uw.forEach(w=>{ const i=cs.indexOf(w); if(i>=0){mc++;cs.splice(i,1);} });
-    isCorrect=cw.length>0&&(mc/cw.length)>=0.75;
+  const bw = q.blankWords || [q.blankWord];
+  if(bw.length === 1) {
+    isCorrect = normalizeText(userInput) === normalizeText(bw[0]);
+  } else {
+    // 2단어: 쉼표 구분 또는 공백 구분 모두 허용
+    const userParts = userInput.split(/[,，\s]+/).map(s=>normalizeText(s)).filter(Boolean);
+    const correctParts = bw.map(w=>normalizeText(w));
+    isCorrect = correctParts.every(w => userParts.includes(w));
   }
   quizAnswered=true;
   const input=document.getElementById('quiz-input');
   const feedback=document.getElementById('quiz-feedback');
   input.disabled=true; input.classList.add(isCorrect?'correct':'wrong');
   if(isCorrect){ quizScore++; feedback.className='quiz-feedback show correct'; feedback.innerHTML='✅ 정답입니다!'; }
-  else { feedback.className='quiz-feedback show wrong'; feedback.innerHTML='❌ 아쉬워요!<div class="quiz-answer-line">정답: '+escHtml(q.mode==='word'?q.blankWord:q.sentence)+'</div>'; }
+  else { const answerStr=(q.blankWords||[q.blankWord]).join(', '); feedback.className='quiz-feedback show wrong'; feedback.innerHTML='❌ 아쉬워요!<div class="quiz-answer-line">정답: '+escHtml(answerStr)+'</div>'; }
   quizResults.push({day:q.day,kr:transCache[q.sentence]||'',sentence:q.sentence,mode:q.mode,blankWord:q.blankWord,userAnswer:userInput,correct:isCorrect});
   document.getElementById('quiz-check-btn').style.display='none';
   document.getElementById('quiz-next-btn').style.display='block';
