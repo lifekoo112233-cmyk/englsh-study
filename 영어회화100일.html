@@ -1043,7 +1043,7 @@ function toggleMic(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   micRecognition=new SR(); micRecognition.lang='en-US'; micRecognition.continuous=false; micRecognition.interimResults=false;
   micRecognition.onstart=()=>{ isMicListening=true; document.getElementById('chat-mic-btn').classList.add('listening'); document.getElementById('chat-mic-btn').textContent='🔴'; };
-  micRecognition.onresult=e=>{ document.getElementById('chat-input').value=e.results[0][0].transcript; stopMic(); sendChat(); };
+  micRecognition.onresult=e=>{ document.getElementById('chat-input').value=e.results[0][0].transcript; stopMic(); document.getElementById('chat-input').focus(); };
   micRecognition.onerror=()=>stopMic(); micRecognition.onend=()=>stopMic();
   micRecognition.start();
 }
