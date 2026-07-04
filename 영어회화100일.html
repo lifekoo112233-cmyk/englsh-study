@@ -313,13 +313,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <div id="tab-chat" style="display:none;">
   <div class="chat-content">
-    <div class="chat-situation-row">
-      <button class="chat-sit-btn active" onclick="setSituation('free',this)">🗣️ 자유</button>
-      <button class="chat-sit-btn" onclick="setSituation('cafe',this)">☕ 카페</button>
-      <button class="chat-sit-btn" onclick="setSituation('airport',this)">✈️ 공항</button>
-      <button class="chat-sit-btn" onclick="setSituation('business',this)">💼 비즈니스</button>
-      <button class="chat-sit-btn" onclick="setSituation('travel',this)">🗺️ 여행</button>
-    </div>
+
     <div class="chat-guide" id="chat-guide">
       <div class="chat-guide-icon">💬</div>
       <div class="chat-guide-title">1회 영어 회화 교정</div>
@@ -352,7 +346,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="tab-news" style="display:none;">
   <div class="news-content">
     <div class="news-source-row">
-      <button class="news-src-btn active" onclick="loadNews('world', this)">🌍 세계</button>
+      <button class="news-src-btn active" onclick="loadNews('top-stories', this)">⭐ 주요</button>
+      <button class="news-src-btn" onclick="loadNews('world', this)">🌍 세계</button>
       <button class="news-src-btn" onclick="loadNews('business', this)">💰 경제</button>
       <button class="news-src-btn" onclick="loadNews('sport', this)">⚽ 스포츠</button>
       <button class="news-src-btn" onclick="loadNews('technology', this)">💻 기술</button>
@@ -412,7 +407,7 @@ function switchTab(tab) {
   currentTab = tab;
   if(tab==='list') renderDayList();
   if(tab==='words') renderWords();
-  if(tab==='news') loadNews('world', document.querySelector('.news-src-btn.active'));
+  if(tab==='news') loadNews('top-stories', document.querySelector('.news-src-btn.active'));
   if(tab==='saved') renderSaved();
   if(tab!=='learn') stopAll();
   if(tab!=='chat') stopMic();
@@ -705,7 +700,10 @@ async function loadNews(src, btn) {
   if(newsCache[src]) { renderNews(src); return; }
   listEl.innerHTML = '<div class="news-loading">뉴스 불러오는 중...</div>';
   try {
-    const url = `https://content.guardianapis.com/${src}?api-key=${GUARDIAN_KEY}&show-fields=bodyText,trailText&page-size=10&order-by=newest`;
+    const section = src === 'top-stories' ? 'search?section=world|business|technology|sport&star-rating=5' : src+'?';
+    const url = src === 'top-stories'
+      ? `https://content.guardianapis.com/search?api-key=${GUARDIAN_KEY}&show-fields=bodyText,trailText&page-size=10&order-by=relevance&show-tags=keyword`
+      : `https://content.guardianapis.com/${src}?api-key=${GUARDIAN_KEY}&show-fields=bodyText,trailText&page-size=10&order-by=relevance`;
     const resp = await fetch(url);
     if(!resp.ok) throw new Error('Guardian API 오류: '+resp.status);
     const data = await resp.json();
@@ -741,7 +739,7 @@ function renderNews(src) {
     const descHtml = n.desc ? makeWordTappable(n.desc) : '';
     const bodyHtml = n.body ? makeWordTappable(n.body) : '';
     const pubStr = n.pubDate ? formatDate(n.pubDate) : '';
-    const srcLabel = {world:'🌍 세계',business:'💰 경제',sport:'⚽ 스포츠',technology:'💻 기술'}[src]||'';
+    const srcLabel = {'top-stories':'⭐ 주요',world:'🌍 세계',business:'💰 경제',sport:'⚽ 스포츠',technology:'💻 기술'}[src]||'';
     return `<div class="news-item">
       <div class="news-category-tag">${srcLabel} · ${pubStr}</div>
       <div class="news-title">${titleHtml}</div>
