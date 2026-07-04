@@ -700,9 +700,10 @@ async function loadNews(src, btn) {
   if(newsCache[src]) { renderNews(src); return; }
   listEl.innerHTML = '<div class="news-loading">뉴스 불러오는 중...</div>';
   try {
+    const fromDate = new Date(Date.now() - 3*24*60*60*1000).toISOString().slice(0,10);
     const url = src === 'top-stories'
-      ? `https://content.guardianapis.com/uk?api-key=${GUARDIAN_KEY}&show-fields=bodyText,trailText&page-size=10&order-by=newest`
-      : `https://content.guardianapis.com/${src}?api-key=${GUARDIAN_KEY}&show-fields=bodyText,trailText&page-size=10&order-by=newest`;
+      ? `https://content.guardianapis.com/uk?api-key=${GUARDIAN_KEY}&show-fields=bodyText,trailText&page-size=10&order-by=newest&from-date=${fromDate}`
+      : `https://content.guardianapis.com/${src}?api-key=${GUARDIAN_KEY}&show-fields=bodyText,trailText&page-size=10&order-by=newest&from-date=${fromDate}`;
     const resp = await fetch(url);
     if(!resp.ok) throw new Error('Guardian API 오류: '+resp.status);
     const data = await resp.json();
