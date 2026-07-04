@@ -222,7 +222,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <span class="app-title">📚 영어회화 100일</span>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="progress-text" id="progress-text">0 / 99 완료</span>
-      <span class="api-status no-key" id="api-status" onclick="openApiModal()">API 키 없음</span>
+      <span class="api-status no-key" id="api-status" onclick="openApiModal()" style="display:none;">API 키 없음</span>
     </div>
   </div>
   <div class="tab-bar">
@@ -501,27 +501,15 @@ function toggleTrans(idx, sentence) {
   });
 }
 
+// MyMemory 무료 번역 API (API 키 불필요)
 async function fetchTranslation(sentence) {
-  if(!apiKey) {
-    openApiModal();
-    throw new Error('API 키 없음');
-  }
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json','anthropic-version':'2023-06-01','x-api-key': apiKey},
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 200,
-      messages: [{role:'user', content:`다음 영어 문장을 자연스러운 한국어로 번역해주세요. 번역문만 출력하세요:\n"${sentence}"`}]
-    })
-  });
-  if(!resp.ok) {
-    const err = await resp.json().catch(()=>({}));
-    if(resp.status===401) { apiKey=''; localStorage.removeItem('eng_api_key'); updateApiStatus(); openApiModal(); }
-    throw new Error(err.error?.message || '번역 실패');
-  }
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(sentence)}&langpair=en|ko`;
+  const resp = await fetch(url);
+  if(!resp.ok) throw new Error('번역 실패');
   const data = await resp.json();
-  return data.content[0].text.trim();
+  const result = data.responseData?.translatedText || '';
+  if(!result || result === sentence) throw new Error('번역 결과 없음');
+  return result;
 }
 
 // API 키 모달
@@ -785,28 +773,18 @@ function toggleWordTrans(idx, kr, ex) {
 
   // 예문 해석
   if(exKrEl.textContent) { exKrEl.style.display = 'block'; return; }
-  const cacheKey = 'wordex:'+ex;
-  if(transCache[cacheKey]) {
-    exKrEl.textContent = transCache[cacheKey];
-    exKrEl.style.display = 'block';
-    return;
-  }
-  if(!apiKey) { exKrEl.style.display = 'none'; return; } // API 없으면 예문 해석은 생략, 단어 뜻만 표시
+  // MyMemory로 예문 번역 (API 키 불필요)
   exKrEl.textContent = '예문 번역 중...';
   exKrEl.style.display = 'block';
-  fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','x-api-key':apiKey},
-    body: JSON.stringify({
-      model:'claude-haiku-4-5-20251001', max_tokens:150,
-      messages:[{role:'user',content:`다음 영어 예문을 자연스러운 한국어로 번역해주세요. 번역문만 출력하세요:\n"${ex}"`}]
-    })
-  }).then(r=>r.json()).then(data=>{
-    const kr2 = data.content[0].text.trim();
-    transCache[cacheKey] = kr2;
-    localStorage.setItem('eng_trans', JSON.stringify(transCache));
-    exKrEl.textContent = kr2;
-  }).catch(()=>{ exKrEl.textContent = ''; exKrEl.style.display='none'; });
+  fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(ex)}&langpair=en|ko`)
+    .then(r=>r.json()).then(data=>{
+      const kr2 = data.responseData?.translatedText || '';
+      if(kr2) {
+        transCache[cacheKey] = kr2;
+        localStorage.setItem('eng_trans', JSON.stringify(transCache));
+        exKrEl.textContent = kr2;
+      } else { exKrEl.style.display='none'; }
+    }).catch(()=>{ exKrEl.textContent = ''; exKrEl.style.display='none'; });
 }
 
 // ===== 뉴스 탭 (Guardian API) =====
@@ -870,12 +848,7 @@ function showWordPopup(word, x, y) {
     return;
   }
 
-  // API 번역
-  if(!apiKey) {
-    document.getElementById('popup-content').innerHTML = '<span style="color:#fca5a5;">API 키 필요</span>';
-    setTimeout(()=>{removeWordPopup();openApiModal();},1200);
-    return;
-  }
+  // MyMemory 번역 (API 키 불필요)
   fetchWordTranslation(word).then(kr=>{
     transCache[cacheKey]=kr;
     localStorage.setItem('eng_trans',JSON.stringify(transCache));
@@ -894,16 +867,15 @@ function removeWordPopup() {
 }
 
 async function fetchWordTranslation(word) {
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','x-api-key':apiKey},
-    body: JSON.stringify({
-      model:'claude-haiku-4-5-20251001', max_tokens:100,
-      messages:[{role:'user',content:`영어 단어 "${word}"의 한국어 뜻을 간단히 알려주세요. 뜻만 출력하세요.`}]
-    })
-  });
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|ko`;
+  const resp = await fetch(url);
+  if(!resp.ok) throw new Error('번역 실패');
   const data = await resp.json();
-  return data.content[0].text.trim();
+  // 단어는 matches에서 더 정확한 뜻 가져오기
+  const matches = data.matches || [];
+  const best = matches.find(m => m.segment?.toLowerCase() === word.toLowerCase());
+  if(best) return best.translation;
+  return data.responseData?.translatedText || word;
 }
 
 // 뉴스 렌더 - 전체 본문 + 단어 탭 + 해석
@@ -967,19 +939,17 @@ async function toggleNewsTrans(idx, text) {
     return;
   }
   if(transEl.textContent) { transEl.style.display='block'; btn.textContent='🇰🇷 해석 닫기'; return; }
-  if(!apiKey) { openApiModal(); return; }
   btn.textContent = '번역 중...';
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','x-api-key':apiKey},
-      body: JSON.stringify({
-        model:'claude-haiku-4-5-20251001', max_tokens:400,
-        messages:[{role:'user',content:`다음 영어 뉴스를 자연스러운 한국어로 번역해주세요. 번역문만 출력하세요:\n"${text.slice(0,500)}"`}]
-      })
-    });
-    const data = await resp.json();
-    transEl.textContent = data.content[0].text.trim();
+    // 긴 텍스트는 문장 단위로 나눠서 번역
+    const sentences = text.slice(0, 500).split(/(?<=[.!?])\s+/).filter(Boolean);
+    const translated = await Promise.all(sentences.map(async s => {
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(s)}&langpair=en|ko`;
+      const r = await fetch(url);
+      const d = await r.json();
+      return d.responseData?.translatedText || s;
+    }));
+    transEl.textContent = translated.join(' ');
     transEl.style.display = 'block';
     btn.textContent = '🇰🇷 해석 닫기';
   } catch(e) {
