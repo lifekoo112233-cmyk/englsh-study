@@ -148,6 +148,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .news-error{text-align:center;padding:30px;color:#ef4444;font-size:14px;}
 
 .chat-content{padding:12px 16px 120px;}
+.chat-mode-row{display:flex;gap:8px;margin-bottom:12px;}
+.chat-mode-btn{flex:1;padding:10px;border:1px solid #ddd;border-radius:10px;background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:#555;text-align:center;}
+.chat-mode-btn.active{border-color:#2563eb;background:#eff6ff;color:#2563eb;}
+.chat-mode-desc{font-size:12px;color:#aaa;text-align:center;margin-bottom:12px;line-height:1.5;}
 .chat-situation-row{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:2px;}
 .chat-sit-btn{flex-shrink:0;padding:7px 12px;border:1px solid #ddd;border-radius:20px;background:#fff;font-size:12px;font-weight:500;cursor:pointer;color:#555;white-space:nowrap;}
 .chat-sit-btn.active{border-color:#2563eb;background:#eff6ff;color:#2563eb;}
@@ -178,6 +182,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .chat-input:focus{border-color:#2563eb;background:#fff;}
 .chat-send-btn{padding:11px 16px;border:none;border-radius:24px;background:#2563eb;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;}
 .chat-send-btn:active{opacity:0.9;}
+
+.chat-log{display:flex;flex-direction:column;gap:10px;}
+.chat-log-bubble-row{display:flex;flex-direction:column;}
+.chat-log-user{align-self:flex-end;max-width:85%;background:#2563eb;color:#fff;padding:10px 14px;border-radius:16px 16px 4px 16px;font-size:14px;line-height:1.5;}
+.chat-log-ai{align-self:flex-start;max-width:88%;background:#fff;border:1px solid #e8e8e8;padding:12px 14px;border-radius:16px 16px 16px 4px;font-size:14px;line-height:1.6;color:#1a1a1a;white-space:pre-wrap;}
+.chat-log-ai-speak{margin-top:6px;padding:4px 10px;border:1px solid #ddd;border-radius:16px;background:#f8f8f8;font-size:11px;cursor:pointer;color:#666;display:inline-block;}
+.chat-log-empty{text-align:center;padding:40px 16px;color:#aaa;font-size:13px;line-height:1.6;}
+.chat-clear-row{text-align:center;margin-bottom:10px;}
+.chat-clear-btn{padding:6px 14px;border:none;background:none;color:#aaa;font-size:12px;cursor:pointer;}
 
 .saved-content{padding:8px 8px 80px;}
 .saved-item{background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:8px;border:1px solid #e8e8e8;display:flex;align-items:center;gap:10px;}
@@ -314,23 +327,49 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="tab-chat" style="display:none;">
   <div class="chat-content">
 
-    <div class="chat-guide" id="chat-guide">
-      <div class="chat-guide-icon">💬</div>
-      <div class="chat-guide-title">1회 영어 회화 교정</div>
-      <div class="chat-guide-desc">영어 문장을 입력하면 AI가 교정해드립니다.<br>매번 독립적으로 처리되어 비용 누적이 없어요!</div>
+    <div class="chat-mode-row">
+      <button class="chat-mode-btn active" id="mode-btn-correct" onclick="setChatMode('correct')">✏️ 교정 모드</button>
+      <button class="chat-mode-btn" id="mode-btn-free" onclick="setChatMode('free')">💬 자유 대화 모드</button>
     </div>
-    <div class="chat-result-card" id="chat-result" style="display:none;">
-      <div class="chat-my-bubble" id="chat-my-text"></div>
-      <div class="chat-ai-bubble" id="chat-ai-text"></div>
-      <div class="chat-result-actions">
-        <button class="chat-action-btn" onclick="speakChatResult()">🔊 듣기</button>
-        <button class="chat-action-btn" onclick="saveChatResult()">📌 저장</button>
-        <button class="chat-action-btn" onclick="resetChat()">🔄 새 문장</button>
+    <div class="chat-mode-desc" id="chat-mode-desc">영어 문장을 입력하면 AI가 교정해드립니다. 매번 독립적으로 처리되어 비용 누적이 없어요!</div>
+
+    <div id="chat-situation-row" class="chat-situation-row" style="display:none;">
+      <button class="chat-sit-btn active" onclick="setSituation('free', this)">자유 주제</button>
+      <button class="chat-sit-btn" onclick="setSituation('cafe', this)">☕ 카페</button>
+      <button class="chat-sit-btn" onclick="setSituation('airport', this)">✈️ 공항</button>
+      <button class="chat-sit-btn" onclick="setSituation('business', this)">💼 비즈니스</button>
+      <button class="chat-sit-btn" onclick="setSituation('travel', this)">🌍 여행</button>
+    </div>
+
+    <div id="chat-correct-area">
+      <div class="chat-guide" id="chat-guide">
+        <div class="chat-guide-icon">💬</div>
+        <div class="chat-guide-title">1회 영어 회화 교정</div>
+        <div class="chat-guide-desc">영어 문장을 입력하면 AI가 교정해드립니다.<br>매번 독립적으로 처리되어 비용 누적이 없어요!</div>
+      </div>
+      <div class="chat-result-card" id="chat-result" style="display:none;">
+        <div class="chat-my-bubble" id="chat-my-text"></div>
+        <div class="chat-ai-bubble" id="chat-ai-text"></div>
+        <div class="chat-result-actions">
+          <button class="chat-action-btn" onclick="speakChatResult()">🔊 듣기</button>
+          <button class="chat-action-btn" onclick="saveChatResult()">📌 저장</button>
+          <button class="chat-action-btn" onclick="resetChat()">🔄 새 문장</button>
+        </div>
       </div>
     </div>
+
+    <div id="chat-free-area" style="display:none;">
+      <div class="chat-clear-row">
+        <button class="chat-clear-btn" onclick="clearFreeChat()">🗑 대화 초기화</button>
+      </div>
+      <div class="chat-log" id="chat-log">
+        <div class="chat-log-empty">상황을 고르고 편하게 영어로 말을 걸어보세요.<br>문법 교정 없이 자연스러운 대화가 이어집니다.</div>
+      </div>
+    </div>
+
     <div class="chat-loading" id="chat-loading" style="display:none;">
       <div class="chat-loading-dots"><span></span><span></span><span></span></div>
-      <div>교정 중...</div>
+      <div id="chat-loading-text">교정 중...</div>
     </div>
   </div>
   <div class="chat-input-bar">
@@ -925,7 +964,6 @@ function checkQuizAnswer() {
   if(bw.length === 1) {
     isCorrect = normalizeText(userInput) === normalizeText(bw[0]);
   } else {
-    // 2단어: 쉼표 구분 또는 공백 구분 모두 허용
     const userParts = userInput.split(/[,，\s]+/).map(s=>normalizeText(s)).filter(Boolean);
     const correctParts = bw.map(w=>normalizeText(w));
     isCorrect = correctParts.every(w => userParts.includes(w));
@@ -980,31 +1018,78 @@ document.addEventListener('keypress', e=>{
 });
 
 // ===== 회화 탭 =====
+let chatMode = 'correct'; // 'correct' | 'free'
 let chatSituation='free', chatLastCorrect='', micRecognition=null, isMicListening=false;
-const SITUATION_PROMPTS={free:'자유 영어 회화 교정',cafe:'카페에서 주문하는 상황',airport:'공항에서 체크인/탑승하는 상황',business:'비즈니스 미팅/이메일 상황',travel:'여행 중 현지인과 대화하는 상황'};
+let freeChatHistory = []; // [{role:'user'|'assistant', content:'...'}]
+const MAX_FREE_HISTORY_MSGS = 20; // 최근 10턴(사용자+AI) 정도로 제한, 비용 관리
+const SITUATION_PROMPTS={free:'자유 주제로 편하게 대화하는 상황',cafe:'카페에서 주문하는 상황',airport:'공항에서 체크인/탑승하는 상황',business:'비즈니스 미팅/이메일 상황',travel:'여행 중 현지인과 대화하는 상황'};
 
-function setSituation(sit,btn){ chatSituation=sit; document.querySelectorAll('.chat-sit-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); resetChat(); }
+function setChatMode(mode) {
+  chatMode = mode;
+  document.getElementById('mode-btn-correct').classList.toggle('active', mode==='correct');
+  document.getElementById('mode-btn-free').classList.toggle('active', mode==='free');
+  document.getElementById('chat-correct-area').style.display = mode==='correct' ? 'block' : 'none';
+  document.getElementById('chat-free-area').style.display = mode==='free' ? 'block' : 'none';
+  document.getElementById('chat-situation-row').style.display = mode==='free' ? 'flex' : 'none';
+  document.getElementById('chat-mode-desc').textContent = mode==='correct'
+    ? '영어 문장을 입력하면 AI가 교정해드립니다. 매번 독립적으로 처리되어 비용 누적이 없어요!'
+    : '문법 지적 없이 자연스럽게 대화가 이어집니다. 대화가 길어질수록 토큰 비용이 조금씩 늘어나요.';
+  document.getElementById('chat-input').placeholder = mode==='correct' ? '영어로 입력하세요...' : '편하게 영어로 말을 걸어보세요...';
+  document.getElementById('chat-loading').style.display='none';
+  stopMic();
+}
+
+function setSituation(sit,btn){
+  chatSituation=sit;
+  document.querySelectorAll('.chat-sit-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  clearFreeChat();
+}
+
 function resetChat(){ document.getElementById('chat-result').style.display='none'; document.getElementById('chat-guide').style.display='block'; document.getElementById('chat-loading').style.display='none'; document.getElementById('chat-input').value=''; chatLastCorrect=''; }
+
+function clearFreeChat(){
+  freeChatHistory = [];
+  renderFreeChatLog();
+}
+
+function renderFreeChatLog(){
+  const logEl = document.getElementById('chat-log');
+  if(!freeChatHistory.length){
+    logEl.innerHTML = '<div class="chat-log-empty">상황을 고르고 편하게 영어로 말을 걸어보세요.<br>문법 교정 없이 자연스러운 대화가 이어집니다.</div>';
+    return;
+  }
+  logEl.innerHTML = freeChatHistory.map((m,i) => {
+    if(m.role==='user') {
+      return `<div class="chat-log-user">${escHtml(m.content)}</div>`;
+    }
+    return `<div class="chat-log-ai">${escHtml(m.content)}<div class="chat-log-ai-speak" onclick="speakOne('${escQ(m.content)}')">🔊 듣기</div></div>`;
+  }).join('');
+  logEl.scrollTop = logEl.scrollHeight;
+}
 
 async function sendChat() {
   const input=document.getElementById('chat-input');
   const text=input.value.trim();
   if(!text){ input.focus(); return; }
   if(!apiKey){ openApiModal(); return; }
+
+  if(chatMode==='free') { await sendFreeChat(text, input); return; }
+
   document.getElementById('chat-guide').style.display='none';
   document.getElementById('chat-result').style.display='none';
+  document.getElementById('chat-loading-text').textContent='교정 중...';
   document.getElementById('chat-loading').style.display='block';
   input.disabled=true;
   const prompt=`당신은 영어 회화 선생님입니다. 상황: ${SITUATION_PROMPTS[chatSituation]}\n\n학생이 다음 영어 문장을 말했습니다:\n"${text}"\n\n다음 형식으로 한국어로 답변해주세요:\n\n✅ 교정된 문장:\n(올바른 영어 문장)\n\n📝 틀린 부분 설명:\n(무엇이 틀렸는지 간단히)\n\n💡 더 자연스러운 표현:\n(네이티브가 실제로 쓰는 표현)\n\n👉 다음 연습 문장:\n(비슷한 상황에서 써볼 수 있는 새 문장 1개)\n\n만약 문장이 완벽하다면 칭찬하고 심화 표현을 알려주세요.`;
   try {
-    // BUG FIX: CORS 헤더 추가
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{
         'Content-Type':'application/json',
         'anthropic-version':'2023-06-01',
         'x-api-key':apiKey,
-        'anthropic-dangerous-direct-browser-access':'true'  // CORS 수정
+        'anthropic-dangerous-direct-browser-access':'true'
       },
       body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:500,messages:[{role:'user',content:prompt}]})
     });
@@ -1026,6 +1111,55 @@ async function sendChat() {
     alert('오류가 발생했습니다: '+e.message);
   }
   input.disabled=false; input.value='';
+}
+
+async function sendFreeChat(text, input) {
+  freeChatHistory.push({role:'user', content:text});
+  renderFreeChatLog();
+  input.value=''; input.disabled=true;
+  document.getElementById('chat-loading-text').textContent='답변 작성 중...';
+  document.getElementById('chat-loading').style.display='block';
+
+  // 비용 관리: 최근 N개 메시지만 전송
+  const trimmedHistory = freeChatHistory.slice(-MAX_FREE_HISTORY_MSGS);
+  const systemPrompt = `너는 친근한 원어민 친구야. 상황: ${SITUATION_PROMPTS[chatSituation]}.
+사용자와 자연스럽게 영어로 대화를 이어가.
+문법 오류는 지적하지 말고, 자연스러운 흐름으로만 대화해.
+답변은 1~3문장으로 짧고 이해하기 쉬운 영어로 해줘.
+너무 어려운 단어나 긴 문장은 피해줘.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'anthropic-version':'2023-06-01',
+        'x-api-key':apiKey,
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:300,
+        system: systemPrompt,
+        messages: trimmedHistory.map(m => ({role:m.role, content:m.content}))
+      })
+    });
+    if(!resp.ok){
+      if(resp.status===401){ apiKey=''; localStorage.removeItem('eng_api_key'); updateApiStatus(); openApiModal(); }
+      throw new Error('API 오류 '+resp.status);
+    }
+    const data = await resp.json();
+    const aiText = data.content[0].text.trim();
+    freeChatHistory.push({role:'assistant', content:aiText});
+    document.getElementById('chat-loading').style.display='none';
+    renderFreeChatLog();
+  } catch(e) {
+    document.getElementById('chat-loading').style.display='none';
+    freeChatHistory.pop(); // 실패 시 마지막 사용자 메시지 제거
+    renderFreeChatLog();
+    alert('오류가 발생했습니다: '+e.message);
+  }
+  input.disabled=false; input.focus();
 }
 
 function speakChatResult(){ if(chatLastCorrect) speakOne(chatLastCorrect); }
